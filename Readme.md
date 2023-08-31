@@ -7,6 +7,7 @@ This is a crawler to download stocks' data in A-Share Market.
 ## Prerequisites
 
 `python 3.10.10`
+
 `pip install -r requirements.txt`
 
 ## Usage
