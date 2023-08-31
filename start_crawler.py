@@ -14,13 +14,13 @@ arg_parser.add_argument('-s',
                         nargs=1,
                         type=str,
                         required=True,
-                        help='Start date (include) in format %Y%m%d')
+                        help='Start date (include) in format %%Y%%m%%d')
 arg_parser.add_argument('-e',
                         '--end',
                         nargs=1,
                         type=str,
                         required=True,
-                        help='End date (exclude) in format %Y%m%d')
+                        help='End date (exclude) in format %%Y%%m%%d')
 
 
 def main() -> None:

@@ -17,13 +17,6 @@ multi_queues = namedtuple('MultiQueues', ['crawler', 'writer', 'other'])
 each_task = namedtuple('Task', ['func', 'args', 'tries'])
 
 
-def file_generator(folder_fp: str) -> str:
-
-    for folder, _, file in os.walk(folder_fp):
-        file_path = os.path.join(folder, file)
-        yield file_path
-
-
 def get(**kwargs) -> Dict[str, Any] | None:
     """Get the content from the url
 
