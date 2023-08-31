@@ -1,3 +1,4 @@
+import os
 import logging
 import threading
 from time import time
@@ -30,8 +31,28 @@ class AShareCrawler:
         self.save_fp = save_fp
         self.dates = dates
 
+        self.finished = set()
         self.queues = multi_queues(PriorityQueue(), Queue(), Queue())
         self.pbar = tqdm(total=0, unit='stock', desc='Saving')
+
+        self.load_resume()
+        self.queues.crawler.put([1, each_task(self.get_list, [1], 0)])
+
+    def load_resume(self):
+        """Load finished tasks"""
+
+        for folder_fp, _, files in os.walk(os.path.dirname(self.save_fp)):
+            for file in files:
+                file_path = os.path.join(folder_fp, file)
+                each_df = pd.read_csv(file_path,
+                                      encoding='utf-8-sig',
+                                      usecols=['日期'])
+                each_df['日期'] = pd.to_datetime(each_df['日期'])
+                each_df = each_df[(each_df['日期'] >= self.dates[0])
+                                  & (each_df['日期'] < self.dates[1])]
+
+                if not each_df.empty:
+                    self.finished.add(file.split('.')[0])
 
     def assign_tasks(self, num_crawler: int, max_retry: int = 3) -> None:
         """Start the thread pool and submit tasks
@@ -67,19 +88,19 @@ class AShareCrawler:
             try:
                 prior, task = self.queues.crawler.get(timeout=30)
                 result = task.func(*task.args)
-                task.tries += 1
+                task = task._replace(tries=task.tries + 1)
 
                 if result is None:
 
                     if task.tries >= max_retry:  # exceeds max retries
                         logging.getLogger(__name__).error(
-                            '%s(%s) fails %d times. Stop retrying!',
+                            '%s(*%s) fails %d times. Stop retrying!',
                             task.func.__name__, str(task.args), max_retry)
                         continue
 
                     logging.getLogger(
                         __name__).warning(  # continue with lower prior
-                            '%s(%s) fails %d times. Continue retrying...',
+                            '%s(*%s) fails %d times. Continue retrying...',
                             task.func.__name__, str(task.args), task.tries)
 
                     prior += 2
@@ -90,6 +111,11 @@ class AShareCrawler:
 
                     if not result:  # end of pages
                         continue
+
+                    result = list(
+                        filter(
+                            lambda each: not (each.split('.')[1] in self.
+                                              finished), result))
 
                     with PBAR_LOCK:
                         self.pbar.total += len(result)
@@ -112,8 +138,10 @@ class AShareCrawler:
 
             except Exception as exc:
                 logging.getLogger(__name__).exception(exc)
-                logging.getLogger(__name__).error('%s(%s)', task.func.__name__,
+                logging.getLogger(__name__).error('%s(*%s)',
+                                                  task.func.__name__,
                                                   str(task.args))
+                break
 
         self.queues.other.get()
         logging.getLogger(__name__).info('Crawler Thread %d stopped.',
@@ -145,6 +173,7 @@ class AShareCrawler:
 
             except Exception as exc:
                 logging.getLogger(__name__).exception(exc)
+                break
 
         logging.getLogger(__name__).info('Writer Thread %d stopped', thread_id)
 
@@ -167,10 +196,12 @@ class AShareCrawler:
         try:
             data_df = pd.DataFrame(
                 [each.split(',') for each in content['data']['klines']])
+            if data_df.empty:
+                return data_df
             data_df.columns = self.req_info['stock_cols']
             data_df['日期'] = pd.to_datetime(data_df['日期'])
-            data_df = data_df[[(data_df['日期'] >= self.dates[0]) &
-                               (data_df['日期'] < self.dates[1])]]
+            data_df = data_df[(data_df['日期'] >= self.dates[0])
+                              & (data_df['日期'] < self.dates[1])]
             return data_df
 
         except KeyError as key_err:

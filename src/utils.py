@@ -17,6 +17,13 @@ multi_queues = namedtuple('MultiQueues', ['crawler', 'writer', 'other'])
 each_task = namedtuple('Task', ['func', 'args', 'tries'])
 
 
+def file_generator(folder_fp: str) -> str:
+
+    for folder, _, file in os.walk(folder_fp):
+        file_path = os.path.join(folder, file)
+        yield file_path
+
+
 def get(**kwargs) -> Dict[str, Any] | None:
     """Get the content from the url
 
@@ -59,13 +66,15 @@ def write(result_df: pd.DataFrame, save_fp: str) -> bool:
                              mode='a',
                              header=False,
                              index=False,
-                             encoding='utf-8')
+                             encoding='utf-8-sig',
+                             date_format='%Y-%m-%d')
         else:  # create new
             result_df.to_csv(save_fp,
                              mode='w',
                              header=True,
                              index=False,
-                             encoding='utf-8')
+                             encoding='utf-8-sig',
+                             date_format='%Y-%m-%d')
 
         return True
 
