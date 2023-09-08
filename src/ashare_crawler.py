@@ -3,7 +3,7 @@ import logging
 import threading
 from time import time
 from datetime import datetime
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Union
 from queue import Queue, PriorityQueue, Empty
 from concurrent.futures import ThreadPoolExecutor
 
@@ -177,7 +177,7 @@ class AShareCrawler:
 
         logging.getLogger(__name__).info('Writer Thread %d stopped', thread_id)
 
-    def get_stock(self, stock_id: str) -> pd.DataFrame | None:
+    def get_stock(self, stock_id: str) -> Union[pd.DataFrame, None]:
         """Get specified stock's history
 
         :param stock_id: a specified stock
@@ -209,7 +209,7 @@ class AShareCrawler:
 
         return None
 
-    def get_list(self, page_num: int) -> List[str] | None:
+    def get_list(self, page_num: int) -> Union[List[str], None]:
         """Get a list of stock codes on the specified page
 
         :param page_num: a page number

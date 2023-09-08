@@ -2,7 +2,7 @@ import re
 import os
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from collections import namedtuple
 
 import requests
@@ -17,7 +17,7 @@ multi_queues = namedtuple('MultiQueues', ['crawler', 'writer', 'other'])
 each_task = namedtuple('Task', ['func', 'args', 'tries'])
 
 
-def get(**kwargs) -> Dict[str, Any] | None:
+def get(**kwargs) -> Union[Dict[str, Any], None]:
     """Get the content from the url
 
     :param kwargs: the kwargs for requests.get (except headers)
